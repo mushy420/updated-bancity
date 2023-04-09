@@ -1,0 +1,156 @@
+import os
+import tkinter as tk
+from tkinter import messagebox
+from tkinter.scrolledtext import ScrolledText
+import threading
+import time
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+
+# function to clear assets
+def clear_assets():
+    asset_ids.delete('1.0', tk.END)
+
+# function to fetch and save inputs
+def save_inputs():
+    r_username = roblox_username.get()
+    r_cookie = roblox_cookie.get()
+    r_group_id = roblox_group_id.get()
+    r_wait_time = wait_time.get()
+    r_blur_filter = blur_filter.get()
+    
+    with open("settings.txt", "w") as f:
+        f.write(f"{r_username}\n{r_cookie}\n{r_group_id}\n{r_wait_time}\n{r_blur_filter}")
+      
+    messagebox.showinfo('Saved!', 'Your settings have been saved successfully!')
+
+# function to read settings from file
+def read_settings():
+    if os.path.exists("settings.txt"):
+        with open("settings.txt") as f:
+            settings = f.readlines()
+            robber_username = settings[0].strip() if len(settings) > 0 else ''
+            roblox_cookie.set(settings[1].strip() if len(settings) > 1 else '')
+            roblox_group_id.set(settings[2].strip() if len(settings) > 2 else '')
+            wait_time.set(settings[3].strip() if len(settings) > 3 else '')
+            blur_filter.set(settings[4].strip() if len(settings) > 4 else '')
+
+# function to start the bot
+def start_bot():
+    global running  # make sure running is a global variable 
+
+    # define the loop for the bot
+    while running:
+        # set up the Selenium driver
+        driver = webdriver.Chrome()
+        driver.get("https://www.roblox.com/my/groups")
+        wait = WebDriverWait(driver, 10)
+
+        # wait for the Join button to appear
+        join_button = wait.until(EC.presence_of_element_located((By.XPATH, "//a[@class='btn-sm btn-primary join-button']")))
+
+        # click the Join button
+        join_button.click()
+
+        # close the driver
+        driver.close()
+
+        # wait for some time before checking again (in seconds)
+        time.sleep(int(wait_time.get()))
+
+# function to stop the bot
+def stop_bot():
+    global running  # make sure running is a global variable
+
+    running = False  # set running to False to stop the bot
+
+# function to start the bot thread
+def start_bot_thread():
+    global running, bot_thread
+
+    running = True
+    bot_thread = threading.Thread(target=start_bot)
+    bot_thread.daemon = True
+    bot_thread.start()
+
+# create the main window
+window = tk.Tk()
+window.title('Roblox Bot Control Panel')
+window.geometry('500x400')
+
+# create the frame for start/stop buttons
+frame = tk.Frame(window)
+frame.pack(side=tk.TOP)
+
+# create the start button
+start_button = tk.Button(frame, text='Start', command=start_bot_thread)
+start_button.pack(side=tk.LEFT)
+
+# create the stop button
+stop_button = tk.Button(frame, text='Stop', command=stop_bot)
+stop_button.pack(side=tk.LEFT)
+
+# create the label and entry for Roblox username
+roblox_username_label = tk.Label(window, text='Roblox username')
+roblox_username_label.pack()
+roblox_username = tk.StringVar()
+roblox_username_entry = tk.Entry(window, textvariable=roblox_username, width=50)
+roblox_username_entry.pack()
+
+# create the label and entry for Roblox cookie
+roblox_cookie_label = tk.Label(window, text='Roblox cookie')
+roblox_cookie_label.pack()
+roblox_cookie = tk.StringVar()
+roblox_cookie_entry = tk.Entry(window, textvariable=roblox_cookie, width=50)
+roblox_cookie_entry.pack()
+
+# create the label and entry for Roblox group ID
+roblox_group_id_label = tk.Label(window, text='Roblox group ID')
+roblox_group_id_label.pack()
+roblox_group_id = tk.StringVar()
+roblox_group_id_entry = tk.Entry(window, textvariable=roblox_group_id, width=50)
+roblox_group_id_entry.pack()
+
+# create the label and entry for wait time
+wait_time_label = tk.Label(window, text='Wait time')
+wait_time_label.pack()
+wait_time = tk.StringVar()
+wait_time.set('10')
+wait_time_entry = tk.Entry(window, textvariable=wait_time, width=50)
+wait_time_entry.pack()
+
+# create the label and entry for blur filter
+blur_filter_label = tk.Label(window, text='Blur filter')
+blur_filter_label.pack()
+blur_filter = tk.StringVar()
+blur_filter_entry = tk.Entry(window, textvariable=blur_filter, width=50)
+blur_filter_entry.pack()
+
+# create the asset ids section and clear assets button
+asset_ids_label = tk.Label(window, text='Asset IDs:')
+asset_ids_label.pack()
+asset_ids = ScrolledText(window, height=10, width=60)
+asset_ids.pack()
+clear_assets_button = tk.Button(window, text='Clear assets', command=clear_assets)
+clear_assets_button.pack()
+
+# create the save, load, and exit buttons
+save_settings_button = tk.Button(window, text='Save settings', command=save_inputs)
+save_settings_button.pack()
+load_settings_button = tk.Button(window, text='Load settings', command=read_settings)
+load_settings_button.pack()
+exit_button = tk.Button(window, text='Exit', command=window.destroy)
+exit_button.pack()
+
+# load the settings from file on startup
+read_settings()
+
+# initialize the running and bot_thread variables
+running = False
+bot_thread = None
+
+# start the GUI main loop
+window.mainloop()
+
